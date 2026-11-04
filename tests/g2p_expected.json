@@ -1,0 +1,82 @@
+[
+ {
+  "text": "Trước hết, tạo mesh cho cánh tay.",
+  "phonemes": "ʈʂˈyə↗c hˈe↗t, tˈaːʔ↓w mˈɛʃ ʧˌɔ kˈæ↗ɲ tˈaj."
+ },
+ {
+  "text": "Sau đó gắn mesh vào hai bone này.",
+  "phonemes": "ʂˈaw dˈɔ↗ ɣˈa↗n mˈɛʃ vˈaː↘w hˈaːj bˈoʊn nˈa↘j."
+ },
+ {
+  "text": "Giờ ta vẽ weight cho rig.",
+  "phonemes": "ʝˈəː↘ tˈaː vˈɛʔ↗ wˈeɪt ʧˌɔ ɹˈɪɡ."
+ },
+ {
+  "text": "Xoay thử, khuỷu tay biến dạng rất mượt.",
+  "phonemes": "swˈaj θˈy↓, xwˈi↓w tˈaj bˈiɛ↗n zˈaːʔ↓ŋ ɹˈə↗t mˈyəʔ↓t."
+ },
+ {
+  "text": "Nếu bị lỗi, chỉnh lại rig nhé!",
+  "phonemes": "nˌe↗w bˌiʔ↓ lˈoʔ↗j, ʧˈi↓ɲ lˈaːʔ↓j ɹˈɪɡ ɲˈɛ↗!"
+ },
+ {
+  "text": "Hôm nay trời trong xanh, gió thổi nhẹ qua hiên nhà.",
+  "phonemes": "hˈom nˈaj ʈʂˈəː↘j ʈʂˈɔŋ sˈæɲ, ʝˈɔ↗ θˈo↓j ɲˈɛʔ↓ kwˈaː hˈiɛn ɲˈaː↘."
+ },
+ {
+  "text": "Giữa một buổi chiều yên tĩnh, cô ấy kể lại câu chuyện bằng một giọng nói ấm áp và chậm rãi.",
+  "phonemes": "ʝˈyəʔ↗ mˈoʔ↓t bˈuə↓j ʧˈiɛ↘w ˈiɛn tˈiʔ↗ɲ, kˈo ˈəɪ↗ kˈe↓ lˈaːʔ↓j kˈə→w ʧwˈiɛʔ↓n bˈa↘ŋ mˈoʔ↓t ʝˈɔʔ↓ŋ nˈɔ↗j ˈə↗m ˈaː↗p vˌaː↘ ʧˈəʔ↓m ɹˈaːʔ↗j."
+ },
+ {
+  "text": "Mở Photoshop rồi xuất file PNG sang Spine.",
+  "phonemes": "mˈəː↓ fˈoʊɾoʊʃˌɑːp ɹˈo↘j swˈə↗t fˈaɪl pˌiːˌɛndʒˈiː ʂˈæŋ spˈaɪn."
+ },
+ {
+  "text": "Thêm keyframe ở đầu timeline, sau đó kéo slider.",
+  "phonemes": "θˈem kˈiːfɹeɪm ˈəː↓ dˈə↘w tˈaɪmlaɪn, ʂˈaw dˈɔ↗ kˈɛ↗w slˈaɪdɚ."
+ },
+ {
+  "text": "Đây là cách dùng IK constraint để chân không bị trượt.",
+  "phonemes": "dˈəɪ lˌaː↘ kˈæ↗c zˈu↘ŋ ˈɪk kənstɹˈeɪnt dˌe↓ ʧˈən xˌoŋ bˌiʔ↓ ʈʂˈyəʔ↓t."
+ },
+ {
+  "text": "Quả thật, nghệ thuật hoạt hình cần rất nhiều kiên nhẫn.",
+  "phonemes": "kwˈaː↓ θˈəʔ↓t, ŋˈeʔ↓ θwˈəʔ↓t hwˈaːʔ↓t hˈi↘ɲ kˈə↘n ɹˈə↗t ɲˈiɛ↘w kˈiɛn ɲˈəʔ↗n."
+ },
+ {
+  "text": "Khuya rồi, ngoằn ngoèo đường về nhà.",
+  "phonemes": "xwˈiə ɹˈo↘j, ŋwˈa↘n ŋwˈɛ↘w dˈyə↘ŋ vˈe↘ ɲˈaː↘."
+ },
+ {
+  "text": "Bạn có thấy UI/UX của phần mềm này ổn không?",
+  "phonemes": "bˈaːʔ↓n kˈɔ↗ θˈəɪ↗ ˈuj ˈʌks kˌuə↓ fˈə↘n mˈe↘m nˈa↘j ˈo↓n xˌoŋ?"
+ },
+ {
+  "text": "Chúng ta sẽ dùng Blender để retopology cái model \"nhân vật\" này.",
+  "phonemes": "ʧˈu↗ŋ tˈaː ʂˌɛʔ↗ zˈu↘ŋ blˈɛndɚ dˌe↓ ɹᵻɾəpˈɑːlədʒi kˌaː↗j mˈɑːdəl \"ɲˈən vˈəʔ↓t\" nˈa↘j."
+ },
+ {
+  "text": "Tôi đã render xong — trông khá ổn…",
+  "phonemes": "tˈoj dˌaːʔ↗ ɹˈɛndɚ sˈɔŋ — ʈʂˈoŋ xˈaː↗ ˈo↓n…"
+ },
+ {
+  "text": "Hãy subscribe kênh YouTube để xem tutorial tiếp theo.",
+  "phonemes": "hˈaʔ↗j ʂəbskɹˈaɪb kˈeɲ juː tˈuːb dˌe↓ sˈɛm tuːtˈɔːɹɪəl tˈiɛ↗p θˈɛw."
+ },
+ {
+  "text": "Người nghệ sĩ phải luyện tập mỗi ngày; không có đường tắt.",
+  "phonemes": "ŋˈyə↘j ŋˈeʔ↓ ʂˈiʔ↗ fˌaː↓j lwˈiɛʔ↓n tˈəʔ↓p mˌoʔ↗j ŋˈa↘j; xˌoŋ kˈɔ↗ dˈyə↘ŋ tˈa↗t."
+ },
+ {
+  "text": "Gỡ rối shader thật là phiền (nhưng đáng).",
+  "phonemes": "ɣˈəːʔ↗ ɹˈo↗j ʃˈeɪdɚ θˈəʔ↓t lˌaː↘ fˈiɛ↘n (ɲˌyŋ dˈaː↗ŋ)."
+ },
+ {
+  "text": "Don’t panic, thường thì nó tự chạy lại.",
+  "phonemes": "dˈoʊnt pˈænɪk, θˈyə↘ŋ θˌi↘ nˈɔ↗ tˈyʔ↓ ʧˈaʔ↓j lˈaːʔ↓j."
+ },
+ {
+  "text": "Uyển chuyển, khuyên nhủ, quyết định, nguyệt quế, thuở xưa.",
+  "phonemes": "wˈiɛ↓n ʧwˈiɛ↓n, xwˈiɛn ɲˈu↓, kwˈiɛ↗t dˈiʔ↓ɲ, ŋwˈiɛʔ↓t kwˈe↗, θwˈəː↓ sˈyə."
+ }
+]

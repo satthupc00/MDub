@@ -1,0 +1,79 @@
+{
+  "name": "mdub",
+  "productName": "MDub",
+  "version": "1.0.0",
+  "description": "Thuyết minh tiếng Việt cho video YouTube",
+  "main": "src/main/main.js",
+  "author": "Mondiro",
+  "license": "Apache-2.0",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/satthupc00/MDub.git"
+  },
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test tests/*.test.js",
+    "dist": "electron-builder --win --publish never"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.135.0",
+    "electron-updater": "6.8.10",
+    "onnxruntime-node": "1.30.0"
+  },
+  "devDependencies": {
+    "electron": "44.9.0",
+    "electron-builder": "26.17.0"
+  },
+  "build": {
+    "appId": "com.mondiro.mdub",
+    "productName": "MDub",
+    "copyright": "Created by Mondiro",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "extension/**/*",
+      "build/icon.png",
+      "whatsnew.json",
+      "package.json",
+      "!node_modules/onnxruntime-node/bin/napi-v6/linux/**",
+      "!node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
+      "!node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/**"
+    ],
+    "asarUnpack": [
+      "extension/**/*",
+      "node_modules/onnxruntime-node/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "MDub-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MDub",
+      "runAfterFinish": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "satthupc00",
+        "repo": "MDub",
+        "releaseType": "release"
+      }
+    ]
+  }
+}

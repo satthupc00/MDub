@@ -1,0 +1,73 @@
+name: Build & Release (Windows)
+
+# Mỗi khi version trong package.json thay đổi → tự build bản Windows và tạo GitHub Release.
+# App đã cài sẽ tự thấy bản mới (electron-updater đọc latest.yml trong Release).
+on:
+  push:
+    paths:
+      - package.json
+      - whatsnew.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Đọc version
+        id: ver
+        shell: bash
+        run: |
+          V=$(node -p "require('./package.json').version")
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$V" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.ver.outputs.exists == 'false'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Cài thư viện
+        if: steps.ver.outputs.exists == 'false'
+        run: npm ci
+
+      - name: Kiểm tra
+        if: steps.ver.outputs.exists == 'false'
+        run: npm test
+
+      - name: Build installer
+        if: steps.ver.outputs.exists == 'false'
+        run: npx electron-builder --win --x64 --publish never
+
+      - name: Ghi chú phát hành từ whatsnew.json
+        if: steps.ver.outputs.exists == 'false'
+        shell: bash
+        run: |
+          node -e "
+          const w=require('./whatsnew.json');
+          const sec=(t,a)=>a&&a.length?'### '+t+'\n'+a.map(x=>'- '+x).join('\n')+'\n\n':'';
+          require('fs').writeFileSync('notes.md','## MDub v'+w.version+' · '+w.date.split('-').reverse().join('/')+'\n\n'+sec('Mới',w.new)+sec('Cải thiện',w.improved)+sec('Sửa lỗi',w.fixed)+
+          '### Cài đặt\nTải **MDub-Setup-'+w.version+'.exe** bên dưới và chạy. Máy đã cài MDub sẽ tự cập nhật.\n\nCreated by Mondiro\n');"
+
+      - name: Tạo Release
+        if: steps.ver.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: MDub v${{ steps.ver.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          body_path: notes.md
+          make_latest: true
+          files: |
+            dist/*.exe
+            dist/*.exe.blockmap
+            dist/latest.yml

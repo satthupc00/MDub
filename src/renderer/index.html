@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https://i.ytimg.com data:; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline'">
+<title>MDub</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <img class="brand-icon" src="../../build/icon.png" alt="">
+      <div class="brand-name"><span><span class="m">M</span><span class="a">Dub</span></span><span class="latest hide" id="latest">latest</span></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="tools">
+      <span class="pill no-drag" id="extPill" title="Trạng thái extension Chrome"><i></i><span>Chưa thấy Chrome</span></span>
+      <button class="ibtn upd" id="updBtn" title="Kiểm tra cập nhật" aria-label="Kiểm tra cập nhật">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside class="side">
+      <button class="nav sel" data-page="jobs" title="Đang xử lý (Ctrl+1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/></svg>Đang xử lý<span class="badge hide" id="jobBadge">0</span></button>
+      <button class="nav" data-page="library" title="Thư viện đã lưu (Ctrl+2)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8"/></svg>Thư viện đã lưu<span class="cnt" id="libCount"></span></button>
+      <button class="nav" data-page="voices" title="Giọng đọc (Ctrl+3)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg>Giọng đọc</button>
+      <button class="nav" data-page="settings" title="Cài đặt (Ctrl+4)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>Cài đặt</button>
+      <div class="spacer"></div>
+      <div class="store">
+        <div class="kv"><span>Cache trên ổ cứng</span><span id="cacheSize" style="font-variant-numeric:tabular-nums">0 MB</span></div>
+        <div class="bar"><div id="cacheBar" style="width:0%"></div></div>
+        <div class="small" id="engineInfo">Giọng đọc chưa sẵn sàng</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- ĐANG XỬ LÝ -->
+      <section class="page on" id="page-jobs">
+        <div class="card hide" id="onboard">
+          <h3>Bắt đầu với MDub — 3 bước, làm 1 lần</h3>
+          <div class="onb">
+            <div class="ob" id="ob1">
+              <div class="ob-h"><span>1</span>Tải giọng đọc</div>
+              <div class="small">Model Kokoro tiếng Việt + 14 giọng (~90 MB). Chạy offline, miễn phí.</div>
+              <div class="bar hide" id="dlBar"><div style="width:0%"></div></div>
+              <div class="small hide" id="dlText"></div>
+              <div class="btns"><button class="btn red" id="dlBtn">Tải giọng đọc</button></div>
+            </div>
+            <div class="ob" id="ob2">
+              <div class="ob-h"><span>2</span>Nhập API key Claude</div>
+              <div class="small">Dùng để dịch phụ đề. Lấy key ở console.anthropic.com → API Keys.</div>
+              <div class="row2"><input class="in" type="password" id="obKey" placeholder="sk-ant-…" aria-label="API key Claude"><button class="btn" id="obKeyBtn">Lưu</button></div>
+            </div>
+            <div class="ob" id="ob3">
+              <div class="ob-h"><span>3</span>Cài extension Chrome</div>
+              <ol class="guide">
+                <li>Bấm <b>Mở trang extension</b> và bật <b>Developer mode</b> (góc phải trên).</li>
+                <li>Bấm <b>Load unpacked</b> rồi chọn thư mục extension (bấm <b>Copy đường dẫn</b> rồi dán vào ô địa chỉ).</li>
+                <li>Mở một video YouTube có phụ đề tiếng Anh, bấm nút <b>VI</b> trên thanh điều khiển video.</li>
+              </ol>
+              <div class="btns"><button class="btn" id="openChromeBtn">Mở trang extension</button><button class="btn" id="copyExtBtn">Copy đường dẫn</button><button class="btn" id="openExtBtn">Mở thư mục</button></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="jobView" class="hide" style="display:flex;flex-direction:column;gap:14px">
+          <section class="card job">
+            <div class="thumb" id="jThumb"></div>
+            <div class="job-info">
+              <div class="job-title" id="jTitle"></div>
+              <div class="small" id="jSub"></div>
+              <div class="tags" id="jTags"></div>
+              <div class="spacer"></div>
+              <div class="btns">
+                <button class="btn red" id="jOpen" title="Mở video trên YouTube"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Mở video trên Chrome</button>
+                <button class="btn" id="jRetrans" title="Dịch lại toàn bộ và tạo lại giọng">Dịch lại</button>
+                <button class="btn" id="jCancel" title="Ngừng xử lý video này">Huỷ</button>
+              </div>
+            </div>
+          </section>
+          <section class="steps" id="steps"></section>
+          <section class="table">
+            <div class="thead"><span>Thời gian</span><span>Gốc (English)</span><span>Thuyết minh (Việt) — bấm để sửa</span><span>Vừa thời lượng</span><span></span></div>
+            <div class="rows" id="rows"></div>
+          </section>
+          <div class="btns" id="otherJobs"></div>
+        </div>
+
+        <div class="empty" id="jobEmpty">
+          <h2>Chưa có video nào đang xử lý</h2>
+          <div>Mở một video YouTube có phụ đề tiếng Anh trên Chrome, rồi bấm nút <b style="color:var(--red)">VI</b> trên thanh điều khiển video.</div>
+          <div class="btns" style="justify-content:center"><span><kbd>Alt</kbd> + <kbd>M</kbd> bật/tắt thuyết minh trên YouTube</span></div>
+        </div>
+      </section>
+
+      <!-- THƯ VIỆN -->
+      <section class="page" id="page-library">
+        <div class="row2"><h2 style="flex:1">Thư viện đã lưu</h2><button class="btn" id="libOpen">Mở thư mục cache</button></div>
+        <div class="small">Video đã dịch và tạo giọng được lưu lại. Mở lại video là phát ngay, không tốn API.</div>
+        <div class="lib" id="lib"></div>
+        <div class="empty hide" id="libEmpty"><h2>Thư viện trống</h2><div>Video bạn đã thuyết minh sẽ hiện ở đây.</div></div>
+      </section>
+
+      <!-- GIỌNG ĐỌC -->
+      <section class="page" id="page-voices">
+        <h2>Giọng đọc Kokoro <span class="small" style="font-weight:400">14 giọng · chạy offline trên máy</span></h2>
+        <div class="card">
+          <label class="f"><span class="lab">Câu nghe thử</span>
+            <input class="in" id="pvText" value="Trước hết, tạo mesh cho cánh tay, sau đó gắn vào hai bone này."></label>
+          <div class="voices" id="voices"></div>
+          <div class="small">Bấm tên giọng để chọn làm mặc định, bấm nút ▶ để nghe thử.</div>
+        </div>
+        <div class="card">
+          <h3>Tốc độ</h3>
+          <label class="f"><span class="lab">Tốc độ đọc<b id="spdV">1,0×</b></span><input type="range" id="spd" min="0.8" max="1.3" step="0.05"></label>
+          <label class="f"><span class="lab">Tối đa khi câu dài hơn khoảng trống trong video<b id="mspdV">1,35×</b></span><input type="range" id="mspd" min="1" max="1.6" step="0.05"></label>
+        </div>
+      </section>
+
+      <!-- CÀI ĐẶT -->
+      <section class="page" id="page-settings">
+        <h2>Cài đặt</h2>
+        <div class="grid2">
+          <section class="card">
+            <h3>Dịch bằng Claude</h3>
+            <label class="f"><span class="lab">API key Claude (mã hoá, chỉ lưu trên máy)<b id="keyState"></b></span>
+              <span class="row2"><input class="in" type="password" id="apiKey" placeholder="sk-ant-…"><button class="btn" id="keyBtn">Lưu &amp; kiểm tra</button></span></label>
+            <label class="f"><span class="lab">Model dịch</span><select class="in" id="model"></select></label>
+            <div class="f"><span class="lab">Thuật ngữ giữ nguyên tiếng Anh</span><div class="chips" id="terms"></div></div>
+            <div class="toggle"><span>Dịch rút gọn cho vừa thời lượng câu gốc</span><input type="checkbox" class="sw" id="shorten"></div>
+            <label class="f"><span class="lab">Tốc độ nói ước tính (tiếng/giây) — giảm nếu giọng hay bị đọc nhanh<b id="spsV"></b></span><input type="range" id="sps" min="3" max="6" step="0.1"></label>
+          </section>
+
+          <section class="card">
+            <h3>Âm thanh trên YouTube</h3>
+            <label class="f"><span class="lab">Âm lượng tiếng gốc khi đang đọc<b id="duckV"></b></span><input type="range" id="duck" min="0" max="1" step="0.05"></label>
+            <label class="f"><span class="lab">Âm lượng giọng đọc<b id="ttsVolV"></b></span><input type="range" id="ttsVol" min="0.2" max="1" step="0.05"></label>
+            <label class="f"><span class="lab">Thời gian giảm/tăng âm<b id="fadeV"></b></span><input type="range" id="fade" min="0" max="1000" step="50"></label>
+            <div class="toggle"><span>Hiện phụ đề tiếng Việt trên video</span><input type="checkbox" class="sw" id="showSubs"></div>
+          </section>
+
+          <section class="card">
+            <h3>Máy &amp; khởi động</h3>
+            <div class="toggle"><span>Khởi động cùng Windows (chạy ngầm ở khay hệ thống)</span><input type="checkbox" class="sw" id="autoStart"></div>
+            <div class="toggle"><span>Dùng card đồ hoạ để tạo giọng (DirectML)</span><input type="checkbox" class="sw" id="useGpu"></div>
+            <div class="kv"><span>Model giọng đọc</span><span id="modelInfo"></span></div>
+            <div class="btns"><button class="btn" id="redownload">Tải lại model</button></div>
+            <div class="kv"><span>Extension Chrome</span><span id="extInfo"></span></div>
+            <div class="btns"><button class="btn" id="openChromeBtn2">Mở trang extension</button><button class="btn" id="copyExtBtn2">Copy đường dẫn</button></div>
+          </section>
+
+          <section class="card">
+            <h3>Cache &amp; Phiên bản</h3>
+            <div class="row2"><span class="small" style="flex:1" id="cacheInfo"></span><button class="btn" id="cacheOpen">Mở thư mục</button><button class="btn" id="cacheClear">Xoá cache</button></div>
+            <div style="height:1px;background:var(--line)"></div>
+            <div class="row2">
+              <span style="flex:1">Phiên bản <b id="ver" style="font-variant-numeric:tabular-nums"></b> <span id="verState"></span></span>
+              <button class="btn" id="wnBtn" title="Xem thay đổi của bản này"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/><path d="M19 17v4M17 19h4"/></svg>What's new</button>
+              <button class="btn red" id="updBtn2">Kiểm tra cập nhật</button>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="foot">
+    <span class="st" id="status">Sẵn sàng</span>
+    <span class="spacer"></span>
+    <span class="credit">Created by Mondiro</span>
+  </footer>
+</div>
+
+<div class="modal" id="wn" role="dialog" aria-modal="true" aria-labelledby="wnTitle">
+  <div class="dlg">
+    <div class="dlg-h"><h3 id="wnTitle">What's new</h3><button class="ibtn" data-close aria-label="Đóng" title="Đóng (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+    <div id="wnBody"></div>
+  </div>
+</div>
+
+<div class="modal" id="upd" role="dialog" aria-modal="true" aria-labelledby="updTitle">
+  <div class="dlg">
+    <div class="dlg-h"><h3 id="updTitle">Có bản mới</h3><button class="ibtn" data-close aria-label="Đóng" title="Đóng (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+    <div id="updBody" class="small"></div>
+    <div class="bar ok hide" id="updBar"><div style="width:0%"></div></div>
+    <div class="btns"><button class="btn green" id="updGo">Cập nhật ngay</button><button class="btn" data-close>Để sau</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+<script src="app.js"></script>
+</body>
+</html>
