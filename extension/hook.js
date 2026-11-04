@@ -44,13 +44,19 @@
         title: vd.title || document.title.replace(/ - YouTube$/, ''),
         channel: vd.author || '',
         lengthSeconds: Number(vd.lengthSeconds) || 0,
-        tracks: list.map((t) => ({
-          baseUrl: t.baseUrl, lang: t.languageCode, kind: t.kind || '', vssId: t.vssId || '',
+        tracks: list.map((t, i) => ({
+          id: i, baseUrl: t.baseUrl, lang: t.languageCode, kind: t.kind || '', vssId: t.vssId || '',
           name: (t.name && (t.name.simpleText || (t.name.runs || []).map((x) => x.text).join(''))) || '',
         })),
       };
     },
-    async track({ baseUrl, lang, kind }) {
+    async track({ id }) {
+      const t = (handlers.info().tracks || [])[id];
+      if (!t) return null;
+      const j = await handlers.json3(t);
+      return j ? { format: 'json3', data: j } : null;
+    },
+    async json3({ baseUrl, lang, kind }) {
       // 1) tải trực tiếp
       let j = await fetchJson3(baseUrl).catch(() => null);
       if (j) return j;

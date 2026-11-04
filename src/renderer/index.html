@@ -63,7 +63,7 @@
               <ol class="guide">
                 <li>Bấm <b>Mở trang extension</b> và bật <b>Developer mode</b> (góc phải trên).</li>
                 <li>Bấm <b>Load unpacked</b> rồi chọn thư mục extension (bấm <b>Copy đường dẫn</b> rồi dán vào ô địa chỉ).</li>
-                <li>Mở một video YouTube có phụ đề tiếng Anh, bấm nút <b>VI</b> trên thanh điều khiển video.</li>
+                <li>Mở video có phụ đề trên YouTube hoặc Netflix, bấm nút <b>VI</b>. Trang khác: bấm icon MDub trên Chrome → <b>Bật MDub cho trang này</b>.</li>
               </ol>
               <div class="btns"><button class="btn" id="openChromeBtn">Mở trang extension</button><button class="btn" id="copyExtBtn">Copy đường dẫn</button><button class="btn" id="openExtBtn">Mở thư mục</button></div>
             </div>
@@ -95,8 +95,8 @@
 
         <div class="empty" id="jobEmpty">
           <h2>Chưa có video nào đang xử lý</h2>
-          <div>Mở một video YouTube có phụ đề tiếng Anh trên Chrome, rồi bấm nút <b style="color:var(--red)">VI</b> trên thanh điều khiển video.</div>
-          <div class="btns" style="justify-content:center"><span><kbd>Alt</kbd> + <kbd>M</kbd> bật/tắt thuyết minh trên YouTube</span></div>
+          <div>Mở video có phụ đề trên YouTube, Netflix hoặc trang đã bật MDub, rồi bấm nút <b style="color:var(--red)">VI</b> trên video.</div>
+          <div class="btns" style="justify-content:center"><span><kbd>Alt</kbd> + <kbd>M</kbd> bật/tắt thuyết minh</span></div>
         </div>
       </section>
 
@@ -139,7 +139,7 @@
           </section>
 
           <section class="card">
-            <h3>Âm thanh trên YouTube</h3>
+            <h3>Âm thanh khi xem video</h3>
             <label class="f"><span class="lab">Âm lượng tiếng gốc khi đang đọc<b id="duckV"></b></span><input type="range" id="duck" min="0" max="1" step="0.05"></label>
             <label class="f"><span class="lab">Âm lượng giọng đọc<b id="ttsVolV"></b></span><input type="range" id="ttsVol" min="0.2" max="1" step="0.05"></label>
             <label class="f"><span class="lab">Thời gian giảm/tăng âm<b id="fadeV"></b></span><input type="range" id="fade" min="0" max="1000" step="50"></label>

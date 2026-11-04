@@ -67,3 +67,36 @@
 .mdub-foot{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-top:1px solid #363A42;font-size:11px}
 .mdub-credit{color:#6B707A}
 @media (prefers-reduced-motion: reduce){.mdub-panel,.mdub-pill,.mdub-btn span,.mdub-sw::after{animation:none!important;transition:none!important}}
+
+/* Netflix / trang khác: lớp nổi phủ đúng vị trí video */
+.mdub-layer{position:fixed;z-index:2147483000;pointer-events:none;display:none}
+.mdub-layer>*{pointer-events:auto}
+.mdub-layer .mdub-sub,.mdub-layer .mdub-pill{pointer-events:none}
+.mdub-layer .mdub-sub{bottom:64px}
+.mdub-layer .mdub-panel{top:56px}
+.mdub-fab{position:absolute;right:16px;top:16px;height:32px;padding:0 12px;border-radius:8px;border:0;background:#474C55;color:#fff;
+  font:800 13px/1 "Segoe UI",Roboto,sans-serif;display:inline-flex;align-items:center;gap:6px;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.4);
+  opacity:0;transform:translateY(-4px);transition:opacity .2s ease,transform .22s cubic-bezier(.22,1,.36,1),background-color .12s ease}
+.mdub-fab.show{opacity:1;transform:none}
+.mdub-fab.on{background:#E5383B}
+.mdub-fab:hover{transform:translateY(-1px)}
+.mdub-fab:active{transform:scale(.95)}
+.mdub-fab svg{width:14px;height:14px}
+.mdub-fab .mdub-dot{width:6px;height:6px;border-radius:50%;background:#F5A623;display:none}
+.mdub-fab.busy .mdub-dot{display:block;animation:mdubPulse 1s ease-in-out infinite}
+
+/* chọn nguồn phụ đề */
+.mdub-segs{display:flex;gap:6px}
+.mdub-seg{flex:1;min-height:44px;border-radius:6px;border:1px solid #363A42;background:#26292F;color:#E8E9EC;font:600 12px/1.25 "Segoe UI",Roboto,sans-serif;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:4px 6px;
+  transition:border-color .12s ease,background-color .12s ease,transform .22s cubic-bezier(.22,1,.36,1)}
+.mdub-seg:hover{border-color:#E5383B;transform:translateY(-1px)}
+.mdub-seg.sel{border-color:#E5383B;background:#3A2426}
+.mdub-seg small{font-size:10.5px;color:#8D929C;font-weight:600}
+.mdub-seg small.mdub-ok{color:#2EB872;font-weight:700}
+@media (prefers-reduced-motion: reduce){.mdub-fab,.mdub-seg{transition:none!important}}
+.mdub-panel::-webkit-scrollbar{width:8px}
+.mdub-panel::-webkit-scrollbar-track{background:transparent}
+.mdub-panel::-webkit-scrollbar-thumb{background:#3A3E46;border-radius:8px}
+.mdub-panel::-webkit-scrollbar-button{display:none}
+.mdub-bar.hide{display:none}

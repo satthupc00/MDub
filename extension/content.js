@@ -1,8 +1,11 @@
 'use strict';
-// MDub trên YouTube: nút VI, bảng điều khiển, phát giọng thuyết minh khớp thời gian video.
+// MDub trên YouTube, Netflix và các trang người dùng đã bật:
+// nút VI, bảng điều khiển, phát giọng thuyết minh khớp thời gian video.
 (() => {
   if (window.__mdubContent) return;
   window.__mdubContent = true;
+  const HOST = location.hostname;
+  const SITE = /(^|\.)youtube\.com$/.test(HOST) ? 'youtube' : /(^|\.)netflix\.com$/.test(HOST) ? 'netflix' : 'web';
 
   // ---------- tiện ích ----------
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -77,6 +80,8 @@
     if (!v || !audio.ctx || audio.ctx.state !== 'running') return;
     if (audio.video === v && audio.mode) return;
     audio.video = v;
+    // Netflix/trang khác: video thường có bảo vệ hoặc khác nguồn → chỉnh âm lượng trực tiếp
+    if (SITE !== 'youtube') { audio.mode = 'volume'; return; }
     if (graphs.has(v)) { audio.videoGain = graphs.get(v); audio.mode = 'graph'; return; }
     try {
       const src = audio.ctx.createMediaElementSource(v);
@@ -96,10 +101,21 @@
       g.linearRampToValueAtTime(on ? level : 1, now + fade);
     } else {
       const v = getVideo(); if (!v) return;
-      if (on && !audio.ducked) { audio.baseVolume = v.volume; v.volume = v.volume * level; }
-      else if (!on && audio.ducked && audio.baseVolume != null) v.volume = audio.baseVolume;
+      if (on && !audio.ducked) { audio.baseVolume = v.volume; fadeVolume(v, v.volume * level, fade); }
+      else if (!on && audio.ducked && audio.baseVolume != null) fadeVolume(v, audio.baseVolume, fade);
     }
     audio.ducked = on;
+  }
+  let fadeT = null;
+  function fadeVolume(v, to, sec) {
+    clearInterval(fadeT);
+    const from = v.volume, steps = Math.max(1, Math.round((sec * 1000) / 30));
+    let k = 0;
+    fadeT = setInterval(() => {
+      k++;
+      try { v.volume = Math.max(0, Math.min(1, from + ((to - from) * k) / steps)); } catch { /* ignore */ }
+      if (k >= steps) clearInterval(fadeT);
+    }, 30);
   }
   function stopPlaying() {
     if (ui.btn) delete ui.btn.dataset.playing;
@@ -126,10 +142,70 @@
 
   // ---------- giao diện ----------
   const ui = {};
-  const getVideo = () => document.querySelector('#movie_player video.html5-main-video') || document.querySelector('video');
+  function largestVideo() {
+    let best = null, area = 0;
+    for (const v of document.querySelectorAll('video')) {
+      const r = v.getBoundingClientRect();
+      const a = r.width * r.height;
+      if (a > area && r.width > 160 && r.height > 90) { best = v; area = a; }
+    }
+    return best;
+  }
+  const getVideo = () => (SITE === 'youtube'
+    ? document.querySelector('#movie_player video.html5-main-video') || document.querySelector('video')
+    : largestVideo());
   const getPlayer = () => document.getElementById('movie_player');
 
+  // Mã của video đang xem (dùng làm khoá cache)
+  function hashStr(t) { let x = 5381; for (let i = 0; i < t.length; i++) x = ((x << 5) + x + t.charCodeAt(i)) >>> 0; return x.toString(36); }
+  function pageKey() {
+    if (SITE === 'youtube') return location.pathname === '/watch' ? new URLSearchParams(location.search).get('v') : null;
+    if (SITE === 'netflix') return (location.pathname.match(/\/watch\/(\d+)/) || [])[1] || null;
+    if (!getVideo()) return null;
+    const q = new URLSearchParams(location.search);
+    const extra = q.get('v') || q.get('id') || q.get('video') || q.get('episode') || '';
+    return hashStr(HOST + location.pathname + extra);
+  }
+
+
+  // Trang không phải YouTube: lớp nổi phủ đúng vị trí video, chứa nút VI + phụ đề + bảng
+  function buildLayer() {
+    const v = getVideo();
+    if (!v) return false;
+    if (!ui.layer) {
+      ui.layer = h('div', { class: 'mdub-layer' });
+      ui.btn = h('button', { class: 'mdub-fab', title: 'MDub thuyết minh (Alt+M bật/tắt)', 'aria-label': 'MDub thuyết minh', onclick: (e) => { e.stopPropagation(); e.preventDefault(); togglePanel(); } },
+        [icon(ICON_SPEAKER, { w: 2.4 }), document.createTextNode('VI'), h('i', { class: 'mdub-dot' })]);
+      ui.sub = h('div', { class: 'mdub-sub' });
+      ui.pill = h('div', { class: 'mdub-pill' }, [h('i'), h('span')]);
+      ui.panel = buildPanel();
+      ui.layer.append(ui.sub, ui.pill, ui.btn, ui.panel);
+      for (const ev of ['pointerdown', 'mousedown', 'mouseup', 'click', 'dblclick']) ui.layer.addEventListener(ev, (e) => { if (e.target !== ui.layer) e.stopPropagation(); });
+    }
+    const fs = document.fullscreenElement;
+    const host = fs && fs !== v && fs.tagName !== 'VIDEO' ? fs : document.body || document.documentElement;
+    if (ui.layer.parentNode !== host) host.append(ui.layer);
+    renderAll();
+    return true;
+  }
+  let lastMove = 0;
+  document.addEventListener('mousemove', () => { lastMove = Date.now(); }, true);
+  function placeLayer() {
+    if (!ui.layer) return;
+    const v = getVideo();
+    if (!v) { ui.layer.style.display = 'none'; return; }
+    const r = v.getBoundingClientRect();
+    if (r.width < 160 || r.height < 90) { ui.layer.style.display = 'none'; return; }
+    const fs = document.fullscreenElement;
+    const host = fs && fs !== v && fs.tagName !== 'VIDEO' ? fs : document.body || document.documentElement;
+    if (ui.layer.parentNode !== host) host.append(ui.layer);
+    Object.assign(ui.layer.style, { display: 'block', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+    const open = ui.panel && ui.panel.classList.contains('open');
+    ui.btn.classList.toggle('show', open || Date.now() - lastMove < 2500 || (ui.pill && ui.pill.classList.contains('show')));
+  }
+
   function buildUI() {
+    if (SITE !== 'youtube') return buildLayer();
     const player = getPlayer();
     const controls = player && player.querySelector('.ytp-right-controls');
     if (!player || !controls) return false;
@@ -161,6 +237,13 @@
     ui.stInfo = h('div', { class: 'mdub-small' });
     ui.stAction = h('div', { style: 'display:none;gap:6px' });
     const card = h('div', { class: 'mdub-card' }, [h('div', { class: 'mdub-row t' }, [ui.stTitle, ui.stRight]), h('div', { class: 'mdub-bar' }, [ui.stBar]), ui.stInfo, ui.stAction]);
+    ui.srcVi = h('button', { class: 'mdub-seg', onclick: () => setSource('vi') }, [document.createTextNode('Phụ đề Việt có sẵn'), h('small', { class: 'mdub-ok', text: 'Miễn phí' })]);
+    ui.srcEn = h('button', { class: 'mdub-seg', onclick: () => setSource('en') }, [document.createTextNode('Dịch từ tiếng Anh'), h('small', { text: 'Claude · tốn API' })]);
+    ui.srcBox = h('div', { class: 'mdub-f', style: 'display:none' }, [
+      h('span', { class: 'mdub-lab', text: 'Nguồn phụ đề' }),
+      h('div', { class: 'mdub-segs' }, [ui.srcVi, ui.srcEn]),
+      h('span', { class: 'mdub-small', text: 'Có phụ đề Việt thì mặc định đọc thẳng. Chỉ có tiếng Anh thì tự dịch.' }),
+    ]);
     ui.voice = h('select', { class: 'mdub-sel', 'aria-label': 'Giọng đọc', onchange: () => saveSetting({ voice: ui.voice.value }) });
     const range = (key, min, max, step, label, fmt) => {
       const val = h('b');
@@ -173,6 +256,7 @@
     };
     ui.subs = h('input', { type: 'checkbox', class: 'mdub-sw', 'aria-label': 'Hiện phụ đề tiếng Việt', onchange: () => saveSetting({ showSubs: ui.subs.checked }) });
     const body = h('div', { class: 'mdub-b' }, [
+      ui.srcBox,
       card,
       h('label', { class: 'mdub-f' }, [h('span', { class: 'mdub-lab', text: 'Giọng đọc' }), ui.voice]),
       range('duckLevel', 0, 1, 0.05, 'Âm lượng gốc khi đang đọc', (v) => Math.round(v * 100) + '%'),
@@ -207,7 +291,12 @@
     const s = st.settings || {};
     const enabled = s.enabled !== false;
     ui.enable.checked = enabled;
-    ui.btn.classList.toggle('on', enabled && st.connected);
+    ui.btn.classList.toggle('on', enabled && st.connected && !st.noSubs && !st.waitingSubs);
+    // nguồn phụ đề
+    const both = !!(st.src && st.src.vi && st.src.en);
+    ui.srcBox.style.display = both ? 'flex' : 'none';
+    ui.srcVi.classList.toggle('sel', st.src && st.src.chosen === 'vi');
+    ui.srcEn.classList.toggle('sel', st.src && st.src.chosen === 'en');
     const busy = enabled && st.job && (st.job.state === 'translating' || st.job.state === 'synthesizing');
     ui.btn.classList.toggle('busy', !!busy);
     // trạng thái
@@ -222,13 +311,15 @@
       title = 'Không thuyết minh được'; info = st.error; rightCls = 'mdub-err';
       ui.stAction.style.display = 'flex';
       ui.stAction.append(h('button', { class: 'mdub-btn2', text: 'Thử lại', onclick: () => startVideo(true) }), h('button', { class: 'mdub-btn2', text: 'Mở app MDub', onclick: () => send({ type: 'showApp' }) }));
+    } else if (st.noSubs) {
+      title = 'Video không có phụ đề'; info = st.noSubs; rightCls = 'mdub-err';
     } else if (!st.job) {
-      title = st.info || 'Đang chuẩn bị…';
+      title = st.info || 'Đang chuẩn bị…'; info = st.infoSub || '';
     } else {
       const j = st.job, tt = j.tts || { done: 0, total: 0 };
       if (j.state === 'translating') { title = 'Đang dịch bằng Claude'; pct = (j.translateProgress || 0) * 100; info = `${st.cues.length} câu · dịch trước toàn bộ video`; }
       else {
-        title = `Đã dịch ${st.cues.length} câu`; right = j.state === 'ready' ? 'Đã lưu cache' : ''; rightCls = 'mdub-ok';
+        title = j.source === 'vi' ? `Đọc ${st.cues.length} câu phụ đề Việt` : `Đã dịch ${st.cues.length} câu`; right = j.state === 'ready' ? 'Đã lưu cache' : ''; rightCls = 'mdub-ok';
         pct = tt.total ? (tt.done / tt.total) * 100 : 0;
         info = j.state === 'ready' ? 'Giọng đọc đã sẵn sàng toàn bộ video' : `Tạo giọng ${tt.done}/${tt.total} · phát ngay được`;
       }
@@ -237,6 +328,7 @@
     ui.stRight.textContent = right; ui.stRight.className = rightCls;
     ui.stBar.style.width = Math.round(pct) + '%';
     ui.stBar.parentNode.classList.toggle('ok', !!(st.job && st.job.state === 'ready'));
+    ui.stBar.parentNode.classList.toggle('hide', !st.job);
     ui.stInfo.textContent = info;
     // cài đặt
     const voices = (st.appStatus && st.appStatus.voices) || [];
@@ -290,54 +382,95 @@
     return r;
   }
 
-  const videoIdFromUrl = () => {
-    if (location.pathname !== '/watch') return null;
-    return new URLSearchParams(location.search).get('v');
-  };
-
-  async function getInfo(videoId) {
+  async function getInfo(key) {
+    // YouTube/Netflix: chờ trình phát nạp xong thông tin video đúng mã
     for (let k = 0; k < 40; k++) {
       const info = await hook('info');
-      if (info && info.videoId === videoId) return info;
-      await sleep(300);
+      if (SITE === 'web') return info;
+      if (info && info.videoId === key && (SITE !== 'netflix' || info.tracks.length || k > 30)) return info;
+      await sleep(SITE === 'netflix' ? 400 : 300);
     }
     return null;
   }
 
-  function pickTrack(tracks) {
-    const en = tracks.filter((t) => /^en/i.test(t.lang));
-    return en.find((t) => t.kind !== 'asr') || en.find((t) => t.kind === 'asr') || null;
+  // Chọn nguồn: phụ đề Việt (thủ công) nếu có và người dùng không chọn khác, không thì phụ đề Anh
+  function chooseSource(tracks, key) {
+    const okLang = (t) => !t.forced;
+    const vi = tracks.find((t) => /^vi/i.test(t.lang) && t.kind !== 'asr' && okLang(t)) || null;
+    const ens = tracks.filter((t) => /^en/i.test(t.lang) && okLang(t));
+    let en = ens.find((t) => t.kind !== 'asr') || ens[0] || null;
+    if (!en && SITE === 'web') en = tracks.find((t) => !t.lang) || null; // không rõ ngôn ngữ → coi là tiếng Anh
+    let pref = null;
+    try { pref = sessionStorage.getItem('mdub-src:' + key); } catch { /* ignore */ }
+    const chosen = pref === 'en' && en ? 'en' : vi ? 'vi' : en ? 'en' : null;
+    return { vi, en, chosen, track: chosen === 'vi' ? vi : en };
+  }
+
+  function cacheId(key, src) {
+    if (SITE === 'youtube') return src === 'vi' ? `${key}-vi` : key;
+    return `${SITE === 'netflix' ? 'nf' : 'web'}-${key}-${src}`;
+  }
+
+  function setSource(src) {
+    if (!st.src || !st.src[src] || st.src.chosen === src) return;
+    try { sessionStorage.setItem('mdub-src:' + st.pageKey, src); } catch { /* ignore */ }
+    st.buffers.clear(); st.fetching.clear(); stopPlaying();
+    startVideo(true);
   }
 
   async function startVideo(force = false) {
-    const videoId = videoIdFromUrl();
-    if (!videoId) return;
-    if (!force && st.videoId === videoId && st.job) return;
+    const key = pageKey();
+    if (!key) return;
+    if (!force && st.pageKey === key && (st.job || st.waiting)) return;
     const session = ++st.session;
-    if (st.videoId !== videoId) { st.buffers.clear(); st.fetching.clear(); stopPlaying(); st.cues = []; st.job = null; }
-    st.videoId = videoId; st.error = null; st.info = 'Đang kết nối app MDub…';
+    if (st.pageKey !== key) { st.buffers.clear(); st.fetching.clear(); stopPlaying(); st.cues = []; st.job = null; st.src = null; }
+    st.pageKey = key; st.error = null; st.noSubs = null; st.infoSub = ''; st.info = 'Đang kết nối app MDub…'; st.waiting = true;
     clearTimeout(st.pollT);
     renderAll();
     const sr = await refreshStatus();
     if (session !== st.session) return;
-    if (!sr.ok) { pill('MDub: chưa kết nối app trên máy', true); return; }
-    if (st.settings && st.settings.enabled === false) return;
-    st.info = 'Đang đọc thông tin video…'; renderAll();
-    const info = await getInfo(videoId);
+    if (!sr.ok) { st.waiting = false; pill('MDub: chưa kết nối app trên máy', true); return; }
+    if (st.settings && st.settings.enabled === false) { st.waiting = false; return; }
+    st.info = 'Đang tìm phụ đề…'; renderAll();
+    let info = await getInfo(key);
     if (session !== st.session) return;
-    const base = { videoId, title: info ? info.title : document.title, channel: info ? info.channel : '', duration: info ? info.lengthSeconds : 0, voice: st.settings.voice };
+    let src = chooseSource((info && info.tracks) || [], key);
+    // Trang khác: nhiều trình phát chỉ tải phụ đề khi người xem bật → chờ
+    st.waitingSubs = false;
+    while (SITE === 'web' && !src.track && session === st.session) {
+      st.waitingSubs = true;
+      st.info = 'Chưa thấy phụ đề trên trang';
+      st.infoSub = 'Bật phụ đề tiếng Anh hoặc tiếng Việt trên trình phát 1 lần, MDub sẽ tự nhận.';
+      renderAll();
+      await sleep(2000);
+      info = await hook('info');
+      src = chooseSource((info && info.tracks) || [], key);
+    }
+    if (session !== st.session) return;
+    st.src = src; st.infoSub = ''; st.waitingSubs = false;
+    if (!src.track) {
+      st.waiting = false;
+      st.noSubs = 'Video này không có phụ đề nên MDub chưa thuyết minh được.';
+      renderAll(); pill('MDub: video không có phụ đề', true, 5000);
+      return;
+    }
+    st.videoId = cacheId(key, src.chosen);
+    const base = {
+      videoId: st.videoId, site: SITE, url: location.href,
+      title: (info && info.title) || document.title, channel: (info && info.channel) || '',
+      duration: info && info.lengthSeconds ? info.lengthSeconds : 0, voice: st.settings.voice,
+    };
     // 1) app đã có sẵn (cache) → không cần tải phụ đề
     let r = await send({ type: 'open', payload: base });
     if (session !== st.session) return;
     if (r.ok && r.data.state === 'need_captions') {
-      const track = info && pickTrack(info.tracks || []);
-      if (!track) { st.error = 'Video này không có phụ đề tiếng Anh (bản đầu chỉ hỗ trợ video có phụ đề).'; renderAll(); pill('MDub: video không có phụ đề tiếng Anh', true, 5000); return; }
       st.info = 'Đang lấy phụ đề…'; renderAll();
-      const json3 = await hook('track', { baseUrl: track.baseUrl, lang: track.lang, kind: track.kind });
+      const subs = await hook('track', { id: src.track.id });
       if (session !== st.session) return;
-      if (!json3) { st.error = 'Không tải được phụ đề của video này. Thử tải lại trang.'; renderAll(); return; }
-      r = await send({ type: 'open', payload: { ...base, json3, lang: track.lang } });
+      if (!subs || !subs.data) { st.waiting = false; st.error = 'Không tải được phụ đề của video này. Thử tải lại trang.'; renderAll(); return; }
+      r = await send({ type: 'open', payload: { ...base, subs: { ...subs, lang: src.chosen === 'vi' ? 'vi' : (src.track.lang || 'en') } } });
     }
+    st.waiting = false;
     if (session !== st.session) return;
     if (!r.ok) { st.connected = false; renderAll(); return; }
     applyJob(r.data);
@@ -406,7 +539,8 @@
   function tick() {
     const v = getVideo();
     const enabled = st.settings && st.settings.enabled !== false && st.connected;
-    if (!v || !enabled || !st.cues.length || st.videoId !== videoIdFromUrl()) {
+    if (SITE !== 'youtube') placeLayer();
+    if (!v || !enabled || !st.cues.length || st.pageKey !== pageKey()) {
       if (st.playing) stopPlaying();
       if (ui.sub) ui.sub.style.display = 'none';
       return;
@@ -446,18 +580,18 @@
     v.addEventListener('ratechange', () => { if (st.playing) st.playing.src.playbackRate.value = v.playbackRate; });
   }
 
-  // ---------- điều hướng trong YouTube (SPA) ----------
-  let lastUrl = '';
+  // ---------- điều hướng (trang 1 trang / SPA) ----------
+  let lastKey = null;
   async function onNavigate() {
-    if (location.href === lastUrl) return;
-    lastUrl = location.href;
-    const id = videoIdFromUrl();
-    if (!id) { stopPlaying(); st.session++; st.videoId = null; st.cues = []; st.job = null; clearTimeout(st.pollT); return; }
+    const key = pageKey();
+    if (key === lastKey) return;
+    lastKey = key;
+    if (!key) { stopPlaying(); st.session++; st.pageKey = null; st.videoId = null; st.cues = []; st.job = null; st.src = null; clearTimeout(st.pollT); if (ui.layer) ui.layer.style.display = 'none'; return; }
     for (let k = 0; k < 40 && !buildUI(); k++) await sleep(250);
     bindVideo();
     startVideo();
   }
-  window.addEventListener('yt-navigate-finish', onNavigate);
-  setInterval(() => { onNavigate(); if (videoIdFromUrl()) { buildUI(); bindVideo(); } }, 1000);
+  if (SITE === 'youtube') window.addEventListener('yt-navigate-finish', onNavigate);
+  setInterval(() => { onNavigate(); if (pageKey()) { buildUI(); bindVideo(); } }, 1000);
   onNavigate();
 })();

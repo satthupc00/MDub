@@ -1,15 +1,16 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "date": "2026-11-04",
   "new": [
-    "Thuyết minh tiếng Việt cho video YouTube có phụ đề tiếng Anh (phụ đề CC hoặc phụ đề tự động)",
-    "Dịch theo ngữ cảnh bằng Claude, giữ nguyên thuật ngữ như mesh, bone, rig… và rút gọn cho vừa thời lượng câu nói",
-    "14 giọng đọc Kokoro tiếng Việt chạy offline trên máy, có nghe thử từng giọng",
-    "Tự giảm âm lượng tiếng gốc khi đang đọc, hiện phụ đề tiếng Việt trên video",
-    "Lưu cache bản dịch và giọng đọc: xem lại không phải tạo lại, không tốn API",
-    "Sửa từng câu dịch ngay trong app, giọng đọc câu đó được tạo lại tự động",
-    "Tự cập nhật app và extension Chrome khi có bản mới"
+    "Thuyết minh trên Netflix: nút VI nổi ở góc video, đọc phụ đề có sẵn của phim",
+    "Thêm bất kỳ trang web nào có video: bấm icon MDub trên Chrome → Bật MDub cho trang này",
+    "Phim có phụ đề tiếng Việt chính thức thì đọc thẳng, không tốn API Claude",
+    "Chọn nguồn phụ đề ngay trên video: Phụ đề Việt có sẵn hoặc Dịch từ tiếng Anh",
+    "Đọc được phụ đề dạng WebVTT, SRT, TTML"
   ],
-  "improved": [],
+  "improved": [
+    "Thư viện và màn Đang xử lý hiện tên trang (YouTube, Netflix…) và nút mở lại đúng trang video",
+    "Lọc bỏ ghi chú âm thanh như [tiếng cửa], tên người nói trong phụ đề phim"
+  ],
   "fixed": []
 }

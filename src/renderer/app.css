@@ -213,3 +213,7 @@ input[type=range]{height:20px}
 .modal.closing .dlg{animation:dlgOut .18s var(--ease-out) forwards}
 @keyframes fadeOut{to{opacity:0}}
 @keyframes dlgOut{to{transform:translateY(8px) scale(.97);opacity:0}}
+.thumb{display:grid;place-items:center;background-size:cover;background-position:center}
+.thumb-site{font-size:15px;font-weight:800;color:#5A5F69;letter-spacing:.02em}
+.tag.ok{border-color:#2eb87266;color:var(--ok)}
+.job{flex-direction:row;align-items:stretch}

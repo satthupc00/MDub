@@ -52,17 +52,32 @@ class JobManager extends EventEmitter {
   audioPath(id, vkey, i) { return path.join(this.videoDir(id), 'audio', vkey.replace(/[^A-Za-z0-9_.@-]/g, ''), `${i}.wav`); }
 
   // Gọi từ extension khi mở video
-  async open({ videoId, title, channel, json3, voice, lang, duration }) {
+  // Gọi từ extension khi mở video.
+  // subs = {format:'json3'|'vtt'|'srt'|'ttml', data, lang}; json3 = kiểu cũ (YouTube)
+  async open({ videoId, title, channel, json3, subs, voice, lang, duration, url, site }) {
     videoId = safeId(videoId);
+    if (!subs && json3) subs = { format: 'json3', data: json3, lang };
     let job = this.jobs.get(videoId);
     let meta = job ? job.meta : this.readMeta(videoId);
     if (!meta || !meta.cues || !meta.cues.length) {
-      if (!json3) return { state: 'need_captions' };
-      const { cues, asr } = buildCues(json3);
+      if (!subs) return { state: 'need_captions' };
+      let built;
+      try { built = buildCues({ format: subs.format, data: subs.data }); } catch (e) { return { state: 'error', error: 'Không đọc được phụ đề: ' + e.message }; }
+      const { cues, asr } = built;
       if (!cues.length) return { state: 'error', error: 'Phụ đề trống.' };
-      meta = { videoId, title, channel, lang, duration, asr, cues, translation: null, audio: {}, createdAt: new Date().toISOString() };
+      const subLang = String(subs.lang || lang || 'en').toLowerCase();
+      const isVi = /^vi/.test(subLang);
+      meta = {
+        videoId, title, channel, url, site: site || 'youtube', lang: subLang, source: isVi ? 'vi' : 'translate',
+        duration, asr, cues, translation: null, audio: {}, createdAt: new Date().toISOString(),
+      };
+      // Phụ đề tiếng Việt có sẵn → đọc thẳng, không gọi Claude
+      if (isVi) meta.translation = { model: 'subtitle', vi: cues.map((c) => c.en), at: new Date().toISOString() };
       this.writeMeta(meta);
-    } else if (title && meta.title !== title) { meta.title = title; meta.channel = channel || meta.channel; this.writeMeta(meta); }
+    } else if ((title && meta.title !== title) || (url && meta.url !== url)) {
+      meta.title = title || meta.title; meta.channel = channel || meta.channel; meta.url = url || meta.url; meta.site = site || meta.site;
+      this.writeMeta(meta);
+    }
     if (!job) {
       job = { meta, state: 'idle', error: null, translateProgress: 0, cursor: 0, touchedAt: Date.now() };
       this.jobs.set(videoId, job);
@@ -198,6 +213,7 @@ class JobManager extends EventEmitter {
     return {
       videoId: m.videoId,
       title: m.title,
+      source: m.source || 'translate',
       state: job.state,
       error: job.error,
       voiceKey: vkey,
@@ -240,7 +256,8 @@ class JobManager extends EventEmitter {
     const job = this.jobs.get(safeId(videoId));
     const meta = job ? job.meta : this.readMeta(videoId);
     if (!meta) return;
-    meta.translation = null; meta.audio = {};
+    meta.translation = meta.source === 'vi' ? { model: 'subtitle', vi: meta.cues.map((c) => c.en), at: new Date().toISOString() } : null;
+    meta.audio = {};
     fs.rmSync(path.join(this.videoDir(videoId), 'audio'), { recursive: true, force: true });
     this.writeMeta(meta);
     if (job) { job.state = 'idle'; job.translateProgress = 0; this.kick(job); }
@@ -252,21 +269,19 @@ class JobManager extends EventEmitter {
     this.emit('update', { videoId, removed: true });
   }
 
-  emitUpdate(job) {
-    const c = this.counts(job);
-    this.emit('update', {
-      videoId: job.meta.videoId, title: job.meta.title, channel: job.meta.channel, state: job.state, error: job.error,
-      translateProgress: job.meta.translation ? 1 : job.translateProgress, tts: c, cues: job.meta.cues.length,
-      voiceKey: job.voiceKey, model: job.meta.translation && job.meta.translation.model,
-    });
+  summary(job) {
+    const m = job.meta;
+    return {
+      videoId: m.videoId, title: m.title, channel: m.channel, url: m.url, site: m.site || 'youtube', source: m.source || 'translate',
+      state: job.state, error: job.error, translateProgress: m.translation ? 1 : job.translateProgress, tts: this.counts(job),
+      cues: m.cues.length, voiceKey: job.voiceKey, model: m.translation && m.translation.model,
+    };
   }
 
+  emitUpdate(job) { this.emit('update', this.summary(job)); }
+
   activeJobs() {
-    return [...this.jobs.values()].sort((a, b) => b.touchedAt - a.touchedAt).map((job) => ({
-      videoId: job.meta.videoId, title: job.meta.title, channel: job.meta.channel, state: job.state, error: job.error,
-      translateProgress: job.meta.translation ? 1 : job.translateProgress, tts: this.counts(job),
-      cues: job.meta.cues.length, voiceKey: job.voiceKey, model: job.meta.translation && job.meta.translation.model,
-    }));
+    return [...this.jobs.values()].sort((a, b) => b.touchedAt - a.touchedAt).map((job) => this.summary(job));
   }
 
   // Thư viện: các video đã lưu
@@ -276,8 +291,8 @@ class JobManager extends EventEmitter {
       const meta = this.readMeta(name);
       if (!meta) continue;
       out.push({
-        videoId: meta.videoId, title: meta.title, channel: meta.channel, cues: meta.cues.length,
-        translated: !!meta.translation, voices: Object.keys(meta.audio || {}).map((k) => k.split('@')[0]),
+        videoId: meta.videoId, title: meta.title, channel: meta.channel, cues: meta.cues.length, url: meta.url, site: meta.site || 'youtube',
+        source: meta.source || 'translate', translated: !!meta.translation, voices: Object.keys(meta.audio || {}).map((k) => k.split('@')[0]),
         updatedAt: meta.updatedAt, size: dirSize(this.videoDir(name)),
       });
     }

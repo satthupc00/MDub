@@ -16,6 +16,12 @@
   const num = (v, d = 1) => Number(v).toFixed(d).replace('.', ',');
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+  const SITE_NAMES = { youtube: 'YouTube', netflix: 'Netflix' };
+  const siteName = (v) => SITE_NAMES[v.site] || (v.url ? (() => { try { return new URL(v.url).hostname.replace(/^www\./, ''); } catch { return 'Web'; } })() : 'YouTube');
+  const thumbCss = (v) => (!v.site || v.site === 'youtube') && /^[A-Za-z0-9_-]{11}$/.test(v.videoId)
+    ? `background-image:url(https://i.ytimg.com/vi/${encodeURIComponent(v.videoId)}/mqdefault.jpg)` : '';
+  const thumbLabel = (v) => (thumbCss(v) ? '' : `<span class="thumb-site">${esc(siteName(v))}</span>`);
+
   let toastT = null;
   function toast(msg) {
     const t = $('#toast'); t.textContent = msg; t.classList.add('on');
@@ -260,16 +266,25 @@
     if (!current) return;
     const j = jobsMap.get(current);
     $('#jTitle').textContent = j.title || j.videoId;
-    $('#jThumb').style.backgroundImage = `url(https://i.ytimg.com/vi/${encodeURIComponent(j.videoId)}/mqdefault.jpg)`;
-    $('#jSub').textContent = `${j.channel || ''}${j.channel ? ' · ' : ''}${j.cues} câu`;
+    $('#jThumb').setAttribute('style', thumbCss(j));
+    $('#jThumb').innerHTML = thumbLabel(j);
+    $('#jSub').textContent = `${siteName(j)} · ${j.channel ? j.channel + ' · ' : ''}${j.cues} câu`;
     const voice = (j.voiceKey || '').split('@')[0];
     const model = (S.models.find((m) => m.id === j.model) || {}).name || j.model || '';
-    $('#jTags').innerHTML = `<span class="tag">Giọng: ${esc(voice)}</span>${model ? `<span class="tag">Dịch: ${esc(model.split(' —')[0])}</span>` : ''}${j.error ? `<span class="tag err">${esc(j.error)}</span>` : ''}`;
+    const isVi = j.source === 'vi';
+    const srcTag = isVi ? '<span class="tag ok">Phụ đề Việt có sẵn · miễn phí</span>' : model ? `<span class="tag">Dịch: ${esc(model.split(' —')[0])}</span>` : '';
+    $('#jTags').innerHTML = `<span class="tag">Giọng: ${esc(voice)}</span>${srcTag}${j.error ? `<span class="tag err">${esc(j.error)}</span>` : ''}`;
+    $('#jRetrans').textContent = isVi ? 'Tạo lại giọng' : 'Dịch lại';
+    $('#jRetrans').title = isVi ? 'Tạo lại toàn bộ giọng đọc' : 'Dịch lại toàn bộ và tạo lại giọng';
+    $('#jOpen').lastChild.textContent = `Mở video trên ${siteName(j)}`;
+    $('.thead span:nth-child(2)').textContent = isVi ? 'Phụ đề gốc' : 'Gốc (English)';
+    $('.thead span:nth-child(3)').textContent = isVi ? 'Câu đọc (Việt) — bấm để sửa' : 'Thuyết minh (Việt) — bấm để sửa';
     const tp = j.translateProgress || 0, tt = j.tts || { done: 0, total: 0 };
     const ttsP = tt.total ? tt.done / tt.total : 0;
     const steps = [
       { name: 'Lấy phụ đề', p: 1, info: `${j.cues} câu` },
-      { name: 'Dịch bằng Claude', p: tp, info: tp >= 1 ? 'Xong' : j.state === 'translating' ? `Đang dịch ${Math.round(tp * 100)}%` : j.error ? 'Lỗi' : 'Chờ' },
+      isVi ? { name: 'Phụ đề Việt có sẵn', p: 1, info: 'Không cần dịch · miễn phí' }
+        : { name: 'Dịch bằng Claude', p: tp, info: tp >= 1 ? 'Xong' : j.state === 'translating' ? `Đang dịch ${Math.round(tp * 100)}%` : j.error ? 'Lỗi' : 'Chờ' },
       { name: 'Tạo giọng đọc', p: ttsP, info: `${tt.done} / ${tt.total} câu` },
       { name: 'Sẵn sàng phát', p: j.state === 'ready' ? 1 : 0, info: j.state === 'ready' ? 'Đã lưu cache, xem lại không tốn API' : tt.done ? 'Phát được ngay từ các câu đã có' : 'Chờ' },
     ];
@@ -325,7 +340,7 @@
     }));
   }
 
-  $('#jOpen').addEventListener('click', () => current && api.openYouTube(current));
+  $('#jOpen').addEventListener('click', () => { const j = current && jobsMap.get(current); if (j) api.openVideo(j.videoId, j.url); });
   $('#jRetrans').addEventListener('click', async () => { if (!current) return; await api.retranslate(current); toast('Đang dịch lại…'); scheduleDetail(); });
   $('#jCancel').addEventListener('click', async () => { if (!current) return; await api.cancelJob(current); jobsMap.delete(current); current = null; renderJobs(); });
 
@@ -334,14 +349,15 @@
     const list = await api.library();
     $('#libCount').textContent = list.length || '';
     $('#libEmpty').classList.toggle('hide', !!list.length);
+    const byId = new Map(list.map((v) => [v.videoId, v]));
     $('#lib').innerHTML = list.map((v) => `<div class="li" data-v="${esc(v.videoId)}">
-      <div class="thumb" style="background-image:url(https://i.ytimg.com/vi/${encodeURIComponent(v.videoId)}/mqdefault.jpg)"></div>
+      <div class="thumb" style="${thumbCss(v)}">${thumbLabel(v)}</div>
       <div class="li-b"><div class="li-t">${esc(v.title || v.videoId)}</div>
-      <div class="small">${esc(v.channel || '')}${v.channel ? ' · ' : ''}${v.cues} câu · ${fmtMB(v.size)}</div>
-      <div class="tags">${v.voices.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}${v.translated ? '' : '<span class="tag">chưa dịch</span>'}</div>
+      <div class="small">${esc(siteName(v))} · ${v.channel ? esc(v.channel) + ' · ' : ''}${v.cues} câu · ${fmtMB(v.size)}</div>
+      <div class="tags">${v.source === 'vi' ? '<span class="tag ok">Phụ đề Việt</span>' : ''}${v.voices.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}${v.translated ? '' : '<span class="tag">chưa dịch</span>'}</div>
       <div class="btns"><button class="btn red" data-open>Mở video</button><button class="btn" data-del>Xoá</button></div></div></div>`).join('');
     $$('#lib .li').forEach((el) => {
-      el.querySelector('[data-open]').addEventListener('click', () => api.openYouTube(el.dataset.v));
+      el.querySelector('[data-open]').addEventListener('click', () => { const v = byId.get(el.dataset.v); api.openVideo(v.videoId, v.url); });
       el.querySelector('[data-del]').addEventListener('click', async () => { await api.removeVideo(el.dataset.v); toast('Đã xoá khỏi cache'); loadLibrary(); refresh(); });
     });
   }

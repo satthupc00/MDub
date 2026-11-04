@@ -19,6 +19,21 @@ body{width:300px}
 .m{color:var(--muted);font-size:12px}
 button{height:30px;padding:0 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:600 12px "Segoe UI",sans-serif;cursor:pointer}
 button:hover{border-color:var(--red)}
+button:disabled{opacity:.5;cursor:default}
+.red{background:var(--red);border-color:var(--red);color:#fff;height:36px;width:100%}
+.red:hover{background:#F04447}
+.card{background:var(--panel);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.site{display:flex;align-items:center;gap:8px;height:34px;padding:0 4px 0 10px;border-radius:6px;background:var(--panel);font-size:12.5px}
+.site span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.site.off span{color:var(--muted)}
+.x{width:28px;height:28px;padding:0;border:0;background:none;color:var(--muted);font-size:15px}
+.x:hover{color:var(--red)}
+.cap{font-size:11.5px;color:var(--muted);font-weight:600}
+.sw{appearance:none;width:34px;height:20px;border-radius:20px;background:#474C55;position:relative;flex:0 0 auto;cursor:pointer;margin:0}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .22s cubic-bezier(.34,1.56,.64,1)}
+.sw:checked{background:var(--red)}.sw:checked::after{transform:translateX(14px)}
+.hide{display:none!important}
+@media (prefers-reduced-motion: reduce){.sw::after{transition:none}}
 .f{display:flex;justify-content:space-between;padding:8px 12px;border-top:1px solid var(--line);font-size:11px}
 .c{color:#6B707A}
 </style>
@@ -28,6 +43,8 @@ button:hover{border-color:var(--red)}
 <div class="b">
   <div class="row"><i class="dot" id="dot"></i><span id="st">Đang kiểm tra…</span></div>
   <div class="m" id="info"></div>
+  <div id="here" class="hide"></div>
+  <div id="sitesBox" class="hide" style="display:flex;flex-direction:column;gap:6px"><div class="cap">Trang đã thêm</div><div id="sites" style="display:flex;flex-direction:column;gap:6px"></div></div>
   <div class="row"><button id="show">Mở app MDub</button><button id="upd" title="Kiểm tra cập nhật">Kiểm tra cập nhật</button></div>
 </div>
 <div class="f"><span class="m" id="ver"></span><span class="c">Created by Mondiro</span></div>

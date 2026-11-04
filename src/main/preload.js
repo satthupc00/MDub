@@ -26,7 +26,7 @@ contextBridge.exposeInMainWorld('mdub', {
   openExtFolder: () => ipcRenderer.invoke('ext:openFolder'),
   copyExtPath: () => ipcRenderer.invoke('ext:copyPath'),
   openChromeExt: () => ipcRenderer.invoke('ext:openChrome'),
-  openYouTube: (id) => ipcRenderer.invoke('open:youtube', id),
+  openVideo: (id, url) => ipcRenderer.invoke('open:video', { id, url }),
   checkUpdate: () => ipcRenderer.invoke('update:check'),
   installUpdate: () => ipcRenderer.invoke('update:install'),
   logs: () => ipcRenderer.invoke('logs'),

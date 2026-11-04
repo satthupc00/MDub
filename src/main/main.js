@@ -156,7 +156,10 @@ function setupIpc() {
   ipcMain.handle('ext:openFolder', () => shell.openPath(extInfo.dir));
   ipcMain.handle('ext:copyPath', () => { clipboard.writeText(extInfo.dir); return extInfo.dir; });
   ipcMain.handle('ext:openChrome', () => openChromeExtensions());
-  ipcMain.handle('open:youtube', (_e, id) => shell.openExternal(`https://www.youtube.com/watch?v=${encodeURIComponent(id)}`));
+  ipcMain.handle('open:video', (_e, { id, url }) => {
+    if (url && /^https?:\/\//i.test(url)) return shell.openExternal(url);
+    return shell.openExternal(`https://www.youtube.com/watch?v=${encodeURIComponent(id)}`);
+  });
   ipcMain.handle('update:check', () => updater.check());
   ipcMain.handle('update:install', async () => { userWantsUpdate = true; await updater.download(); });
   ipcMain.handle('logs', () => logs);
@@ -187,7 +190,6 @@ async function startServer() {
     },
     open: (b) => {
       if (!store.isReady()) return { state: 'error', error: 'Chưa tải giọng đọc. Mở app MDub để tải (1 lần).' };
-      if (!settings.getApiKey()) return { state: 'error', error: 'Chưa nhập API key Claude. Mở app MDub → Cài đặt.' };
       return jobs.open(b);
     },
     job: (id) => jobs.status(id),
