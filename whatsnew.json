@@ -1,16 +1,13 @@
 {
-  "version": "1.1.0",
+  "version": "1.1.1",
   "date": "2026-11-04",
   "new": [
-    "Thuyết minh trên Netflix: nút VI nổi ở góc video, đọc phụ đề có sẵn của phim",
-    "Thêm bất kỳ trang web nào có video: bấm icon MDub trên Chrome → Bật MDub cho trang này",
-    "Phim có phụ đề tiếng Việt chính thức thì đọc thẳng, không tốn API Claude",
-    "Chọn nguồn phụ đề ngay trên video: Phụ đề Việt có sẵn hoặc Dịch từ tiếng Anh",
-    "Đọc được phụ đề dạng WebVTT, SRT, TTML"
+    "Nút \"Sao chép thông tin lỗi\" trên Netflix khi MDub chưa bắt được phụ đề, để gửi lại cho Claude sửa nhanh"
   ],
   "improved": [
-    "Thư viện và màn Đang xử lý hiện tên trang (YouTube, Netflix…) và nút mở lại đúng trang video",
-    "Lọc bỏ ghi chú âm thanh như [tiếng cửa], tên người nói trong phụ đề phim"
+    "Netflix: chờ phụ đề lâu hơn và tự chạy ngay khi Netflix tải phụ đề xong (không cần tải lại trang)"
   ],
-  "fixed": []
+  "fixed": [
+    "Netflix: không bắt được phụ đề dù phim có phụ đề (nhận thêm định dạng phụ đề mới IMSC của Netflix, tìm danh sách phụ đề ở mọi vị trí trong dữ liệu của trình phát)"
+  ]
 }

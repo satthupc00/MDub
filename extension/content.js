@@ -312,7 +312,14 @@
       ui.stAction.style.display = 'flex';
       ui.stAction.append(h('button', { class: 'mdub-btn2', text: 'Thử lại', onclick: () => startVideo(true) }), h('button', { class: 'mdub-btn2', text: 'Mở app MDub', onclick: () => send({ type: 'showApp' }) }));
     } else if (st.noSubs) {
-      title = 'Video không có phụ đề'; info = st.noSubs; rightCls = 'mdub-err';
+      title = SITE === 'netflix' ? 'Chưa bắt được phụ đề' : 'Video không có phụ đề'; info = st.noSubs; rightCls = 'mdub-err';
+      if (SITE === 'netflix') {
+        ui.stAction.style.display = 'flex';
+        ui.stAction.append(
+          h('button', { class: 'mdub-btn2', text: 'Thử lại', onclick: () => startVideo(true) }),
+          h('button', { class: 'mdub-btn2 red', text: 'Sao chép thông tin lỗi', onclick: copyDiag }),
+        );
+      }
     } else if (!st.job) {
       title = st.info || 'Đang chuẩn bị…'; info = st.infoSub || '';
     } else {
@@ -341,6 +348,18 @@
     ui.latest.classList.toggle('show', !!(u && u.status === 'latest'));
     ui.upd.classList.toggle('latest', !!(u && u.status === 'latest'));
     ui.upd.title = u && u.status === 'latest' ? 'Kiểm tra cập nhật · Đã là bản mới nhất' : u && u.status === 'available' ? `Kiểm tra cập nhật · Có bản mới v${u.latest} (mở app MDub để cài)` : 'Kiểm tra cập nhật';
+  }
+
+  // Thông tin chẩn đoán (không có dữ liệu cá nhân): giúp sửa lỗi bắt phụ đề
+  async function copyDiag(e) {
+    const d = await hook('diag');
+    const info = { mdub: chrome.runtime.getManifest().version, site: SITE, ...(d || { hook: false }) };
+    const text = 'MDub chẩn đoán Netflix:\n' + JSON.stringify(info, null, 1);
+    try { await navigator.clipboard.writeText(text); } catch {
+      const ta = h('textarea'); ta.value = text; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    }
+    if (e && e.target) e.target.textContent = 'Đã sao chép ✓';
+    pill('Đã sao chép thông tin lỗi — dán gửi cho Claude', false, 4000);
   }
 
   async function checkUpdate() {
@@ -446,12 +465,33 @@
       info = await hook('info');
       src = chooseSource((info && info.tracks) || [], key);
     }
+    // Netflix: manifest có khi đến muộn (sau khi phim bắt đầu phát) → chờ thêm tối đa ~45 giây
+    for (let k = 0; SITE === 'netflix' && !src.track && k < 22 && session === st.session; k++) {
+      st.waitingSubs = true;
+      st.info = 'Đang chờ Netflix tải phụ đề…';
+      st.infoSub = 'Nếu phim chưa chạy, bấm phát. MDub tự nhận khi Netflix tải phụ đề.';
+      renderAll();
+      await sleep(2000);
+      info = await hook('info');
+      src = chooseSource((info && info.tracks) || [], key);
+    }
     if (session !== st.session) return;
     st.src = src; st.infoSub = ''; st.waitingSubs = false;
     if (!src.track) {
       st.waiting = false;
-      st.noSubs = 'Video này không có phụ đề nên MDub chưa thuyết minh được.';
-      renderAll(); pill('MDub: video không có phụ đề', true, 5000);
+      st.noSubs = SITE === 'netflix'
+        ? 'MDub chưa bắt được phụ đề của phim này. Bấm "Sao chép thông tin lỗi" rồi gửi cho Claude để sửa.'
+        : 'Video này không có phụ đề nên MDub chưa thuyết minh được.';
+      renderAll(); pill(SITE === 'netflix' ? 'MDub: chưa bắt được phụ đề' : 'MDub: video không có phụ đề', true, 5000);
+      // vẫn theo dõi: phụ đề xuất hiện thì tự chạy
+      const watchLater = async () => {
+        if (session !== st.session || !st.noSubs) return;
+        const again = await hook('info');
+        if (session !== st.session) return;
+        if (chooseSource((again && again.tracks) || [], key).track) { startVideo(true); return; }
+        setTimeout(watchLater, 4000);
+      };
+      setTimeout(watchLater, 4000);
       return;
     }
     st.videoId = cacheId(key, src.chosen);
