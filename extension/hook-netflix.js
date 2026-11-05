@@ -7,7 +7,8 @@
   const WANT = ['webvtt-lssdh-ios8', 'dfxp-ls-sdh', 'simplesdh', 'imsc1.1'];
   const movies = new Map(); // movieId -> tracks
   let lastId = null;
-  const diag = { hook: true, parseObjects: 0, ttFound: 0, injected: 0, profilesSeen: [], ttKeys: [], movieIds: [], dlProfiles: [], errors: [], via: [] };
+  const sniffed = []; // file phụ đề bắt được khi trình phát tải: {lang, format, data, at}
+  const diag = { sniffed: 0, apiTracks: 0, apiErr: null, switchTried: [], bigKeys: [], hook: true, parseObjects: 0, ttFound: 0, injected: 0, profilesSeen: [], ttKeys: [], movieIds: [], dlProfiles: [], errors: [], via: [] };
   const note = (arr, v, max = 12) => { if (v && !arr.includes(v)) { arr.push(v); if (arr.length > max) arr.shift(); } };
 
   // Xin thêm định dạng phụ đề dễ đọc khi trình phát hỏi manifest
@@ -73,7 +74,13 @@
     if (!o || typeof o !== 'object' || depth > 6 || seen.has(o)) return;
     seen.add(o);
     if (Array.isArray(o.timedtexttracks)) { captureList(o.timedtexttracks, o); return; }
-    if (Array.isArray(o)) { for (const x of o.slice(0, 50)) scan(x, depth + 1, seen); return; }
+    if (Array.isArray(o)) {
+      // danh sách phụ đề đổi tên: mảng các phần tử có ttDownloadables
+      if (o.length && o[0] && typeof o[0] === 'object' && (o[0].ttDownloadables || (o[0].downloadables && o[0].language))) { captureList(o, {}); return; }
+      for (const x of o.slice(0, 50)) scan(x, depth + 1, seen);
+      return;
+    }
+    if (depth <= 2) { const ks = Object.keys(o); if (ks.length >= 6 && ks.some((k) => /track|movie|manifest|video|audio|text/i.test(k))) note(diag.bigKeys, ks.slice(0, 25).join(','), 8); }
     for (const k of Object.keys(o).slice(0, 80)) {
       const v = o[k];
       if (v && typeof v === 'object') scan(v, depth + 1, seen);
@@ -100,6 +107,103 @@
     return origJson.apply(this, arguments).then((r) => { inspect(r, 'Response.json'); return r; });
   };
 
+  // ---------- Bắt file phụ đề khi trình phát tải về ----------
+  const dec = new TextDecoder('utf-8');
+  function peekText(buf) {
+    try {
+      if (typeof buf === 'string') return buf;
+      if (!buf || !buf.byteLength || buf.byteLength > 4 * 1024 * 1024) return null;
+      const head = dec.decode(new Uint8Array(buf, 0, Math.min(64, buf.byteLength))).trimStart();
+      if (!/^(<\?xml|<tt|WEBVTT)/.test(head)) return null;
+      return dec.decode(new Uint8Array(buf));
+    } catch { return null; }
+  }
+  function sniff(text) {
+    if (!text || text.length < 50) return;
+    const t = text.trimStart();
+    let format = null;
+    if (/^WEBVTT/.test(t)) format = 'vtt';
+    else if (/^(<\?xml|<tt)/.test(t) && /<p\b[^>]*begin=/.test(t)) format = 'ttml';
+    if (!format) return;
+    let lang = ((t.match(/xml:lang="([^"]+)"/) || [])[1] || '').toLowerCase();
+    if (!lang) { const cur = currentTextTrack(); lang = cur ? String(cur.bcp47 || cur.language || '').toLowerCase() : ''; }
+    sniffed.push({ lang, format, data: text, at: Date.now() });
+    if (sniffed.length > 12) sniffed.shift();
+    diag.sniffed++;
+  }
+  const origOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function () {
+    try {
+      this.addEventListener('load', () => {
+        try {
+          const rt = this.responseType;
+          if (rt === '' || rt === 'text') sniff(this.responseText);
+          else if (rt === 'arraybuffer') sniff(peekText(this.response));
+        } catch { /* ignore */ }
+      });
+    } catch { /* ignore */ }
+    return origOpen.apply(this, arguments);
+  };
+  const origFetch = window.fetch;
+  window.fetch = function () {
+    return origFetch.apply(this, arguments).then((res) => {
+      try {
+        const type = res.headers.get('content-type') || '';
+        if (/xml|ttml|vtt|text\/plain/i.test(type)) res.clone().arrayBuffer().then((b) => sniff(peekText(b))).catch(() => {});
+      } catch { /* ignore */ }
+      return res;
+    });
+  };
+
+  // ---------- Hỏi trình phát Netflix danh sách phụ đề ----------
+  function nfPlayer() {
+    try {
+      const vp = window.netflix.appContext.state.playerApp.getAPI().videoPlayer;
+      const ids = vp.getAllPlayerSessionIds();
+      const sid = ids.find((i) => /^watch/i.test(i)) || ids[ids.length - 1];
+      return sid ? vp.getVideoPlayerBySessionId(sid) : null;
+    } catch (e) { diag.apiErr = String(e && e.message).slice(0, 80); return null; }
+  }
+  function currentTextTrack() { try { const p = nfPlayer(); return p && p.getTimedTextTrack(); } catch { return null; } }
+  function apiTracks() {
+    const p = nfPlayer();
+    if (!p) return [];
+    try {
+      const list = (p.getTimedTextTrackList() || []).filter((t) => t && !t.isNoneTrack);
+      diag.apiTracks = list.length;
+      return list.map((t) => ({
+        id: 'api:' + t.trackId, lang: String(t.bcp47 || t.language || '').toLowerCase(),
+        name: t.displayName || t.bcp47 || '', forced: !!t.isForcedNarrative,
+        kind: /cc|closed/i.test(String(t.rawTrackType || t.trackType || '')) ? 'cc' : 'sub',
+      }));
+    } catch (e) { diag.apiErr = String(e && e.message).slice(0, 80); return []; }
+  }
+  const sameLang = (a, b) => a && b && a.split('-')[0] === b.split('-')[0];
+  async function grabViaPlayer(trackId, lang) {
+    const have = sniffed.slice().reverse().find((x) => sameLang(x.lang, lang));
+    if (have) return { format: have.format, data: have.data };
+    const p = nfPlayer();
+    if (!p) return null;
+    const list = p.getTimedTextTrackList() || [];
+    const target = list.find((t) => String(t.trackId) === String(trackId));
+    if (!target) return null;
+    const before = p.getTimedTextTrack();
+    const since = Date.now();
+    note(diag.switchTried, lang);
+    try { p.setTimedTextTrack(target); } catch (e) { diag.apiErr = String(e && e.message).slice(0, 80); return null; }
+    let got = null;
+    for (let k = 0; k < 50 && !got; k++) {
+      await new Promise((r) => setTimeout(r, 200));
+      got = sniffed.slice().reverse().find((x) => x.at >= since - 200 && (sameLang(x.lang, lang) || !x.lang));
+    }
+    // trả lại phụ đề như người xem đang chọn
+    try {
+      if (before && String(before.trackId) !== String(target.trackId)) p.setTimedTextTrack(before);
+      else if (!before) { const off = list.find((t) => t.isNoneTrack); if (off) p.setTimedTextTrack(off); }
+    } catch { /* ignore */ }
+    return got ? { format: got.format, data: got.data } : null;
+  }
+
   const currentId = () => ((location.pathname.match(/\/watch\/(\d+)/) || [])[1] || null);
   function title() {
     const el = document.querySelector('[data-uia="video-title"]');
@@ -117,9 +221,15 @@
   const handlers = {
     info() {
       const id = currentId();
-      return { videoId: id, title: title() || (id ? `Netflix ${id}` : ''), channel: 'Netflix', tracks: tracksFor(id).map(({ url, ...t }) => t) };
+      let tracks = tracksFor(id).map(({ url, ...t }) => t);
+      if (!tracks.length) tracks = apiTracks();
+      return { videoId: id, title: title() || (id ? `Netflix ${id}` : ''), channel: 'Netflix', tracks };
     },
     async track({ id }) {
+      if (String(id).startsWith('api:')) {
+        const t = apiTracks().find((x) => x.id === id);
+        return grabViaPlayer(String(id).slice(4), t ? t.lang : '');
+      }
       for (const list of movies.values()) {
         const t = list.find((x) => x.id === id);
         if (!t) continue;

@@ -1,14 +1,14 @@
 {
-  "version": "1.1.2",
+  "version": "1.1.3",
   "date": "2026-11-05",
   "new": [
-    "Popup của extension kiểm tra MDub có đang chạy trên trang hiện tại không, kèm nút \"Cấp quyền & tải lại trang\" và \"Sao chép thông tin lỗi\""
+    "Netflix: lấy phụ đề trực tiếp từ trình phát. MDub tạm bật phụ đề cần dùng trong giây lát để tải về, rồi trả lại như bạn đang chọn"
   ],
   "improved": [
-    "Netflix và trang khác: nút VI luôn hiện trên video (mờ khi không rê chuột), không còn bị ẩn mất"
+    "Nút VI, bảng điều khiển và phụ đề Việt luôn nằm trong phần video đang thấy trên màn hình"
   ],
   "fixed": [
-    "Netflix: không thấy nút VI trên video",
-    "Chặn extension tự nạp lại liên tục khi được nạp từ thư mục khác thư mục của app"
+    "Netflix: nút VI bị đẩy ra ngoài màn hình khi Netflix phóng video to hơn cửa sổ",
+    "Netflix: không bắt được phụ đề vì Netflix đổi cách gửi danh sách phụ đề"
   ]
 }

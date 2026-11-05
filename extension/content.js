@@ -199,7 +199,11 @@
     const fs = document.fullscreenElement;
     const host = fs && fs !== v && fs.tagName !== 'VIDEO' ? fs : document.body || document.documentElement;
     if (ui.layer.parentNode !== host) host.append(ui.layer);
-    Object.assign(ui.layer.style, { display: 'block', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+    // chỉ phủ phần video đang thấy trên màn hình (Netflix hay phóng video to hơn cửa sổ)
+    const L = Math.max(0, r.left), T = Math.max(0, r.top);
+    const R = Math.min(window.innerWidth, r.right), B = Math.min(window.innerHeight, r.bottom);
+    if (R - L < 160 || B - T < 90) { ui.layer.style.display = 'none'; return; }
+    Object.assign(ui.layer.style, { display: 'block', left: L + 'px', top: T + 'px', width: (R - L) + 'px', height: (B - T) + 'px' });
     const open = ui.panel && ui.panel.classList.contains('open');
     // nút luôn hiện (mờ khi không rê chuột) để không bị lạc mất
     ui.btn.classList.add('show');
