@@ -1,13 +1,14 @@
 {
-  "version": "1.1.1",
-  "date": "2026-11-04",
+  "version": "1.1.2",
+  "date": "2026-11-05",
   "new": [
-    "Nút \"Sao chép thông tin lỗi\" trên Netflix khi MDub chưa bắt được phụ đề, để gửi lại cho Claude sửa nhanh"
+    "Popup của extension kiểm tra MDub có đang chạy trên trang hiện tại không, kèm nút \"Cấp quyền & tải lại trang\" và \"Sao chép thông tin lỗi\""
   ],
   "improved": [
-    "Netflix: chờ phụ đề lâu hơn và tự chạy ngay khi Netflix tải phụ đề xong (không cần tải lại trang)"
+    "Netflix và trang khác: nút VI luôn hiện trên video (mờ khi không rê chuột), không còn bị ẩn mất"
   ],
   "fixed": [
-    "Netflix: không bắt được phụ đề dù phim có phụ đề (nhận thêm định dạng phụ đề mới IMSC của Netflix, tìm danh sách phụ đề ở mọi vị trí trong dữ liệu của trình phát)"
+    "Netflix: không thấy nút VI trên video",
+    "Chặn extension tự nạp lại liên tục khi được nạp từ thư mục khác thư mục của app"
   ]
 }

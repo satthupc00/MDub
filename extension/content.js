@@ -188,8 +188,8 @@
     renderAll();
     return true;
   }
-  let lastMove = 0;
-  document.addEventListener('mousemove', () => { lastMove = Date.now(); }, true);
+  let lastMove = Date.now();
+  for (const ev of ['mousemove', 'pointermove', 'pointerdown']) window.addEventListener(ev, () => { lastMove = Date.now(); }, true);
   function placeLayer() {
     if (!ui.layer) return;
     const v = getVideo();
@@ -201,7 +201,9 @@
     if (ui.layer.parentNode !== host) host.append(ui.layer);
     Object.assign(ui.layer.style, { display: 'block', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
     const open = ui.panel && ui.panel.classList.contains('open');
-    ui.btn.classList.toggle('show', open || Date.now() - lastMove < 2500 || (ui.pill && ui.pill.classList.contains('show')));
+    // nút luôn hiện (mờ khi không rê chuột) để không bị lạc mất
+    ui.btn.classList.add('show');
+    ui.btn.classList.toggle('idle', !(open || Date.now() - lastMove < 2500 || (ui.pill && ui.pill.classList.contains('show')) || st.noSubs || st.waitingSubs));
   }
 
   function buildUI() {
@@ -608,7 +610,25 @@
     if (Math.abs(t - st.lastCursor) > 3) { st.lastCursor = t; send({ type: 'cursor', videoId: st.videoId, t }); }
     prefetch(t);
   }
-  setInterval(tick, 50);
+  const errs = [];
+  const safe = (name, fn) => (...a) => { try { return fn(...a); } catch (e) { if (errs.length < 8) errs.push(`${name}: ${e && e.message}`); return undefined; } };
+  setInterval(safe('tick', tick), 50);
+
+  // Chẩn đoán cho popup của extension (đọc qua chrome.scripting)
+  window.__mdubDiag = () => {
+    const v = getVideo();
+    const r = v && v.getBoundingClientRect();
+    return {
+      site: SITE, path: location.pathname, key: pageKey(), connected: st.connected, enabled: st.settings ? st.settings.enabled !== false : null,
+      videos: [...document.querySelectorAll('video')].map((x) => { const b = x.getBoundingClientRect(); return `${Math.round(b.width)}x${Math.round(b.height)}`; }),
+      video: r ? `${Math.round(r.width)}x${Math.round(r.height)}` : null,
+      layer: ui.layer ? { parent: ui.layer.parentNode ? ui.layer.parentNode.tagName : null, display: ui.layer.style.display, rect: [ui.layer.style.left, ui.layer.style.top, ui.layer.style.width, ui.layer.style.height].join(' ') } : null,
+      fullscreen: document.fullscreenElement ? document.fullscreenElement.tagName + '.' + String(document.fullscreenElement.className).slice(0, 40) : null,
+      info: st.info, noSubs: st.noSubs, error: st.error, job: st.job ? st.job.state : null, cues: st.cues.length,
+      src: st.src ? { vi: !!st.src.vi, en: !!st.src.en, chosen: st.src.chosen } : null,
+      errors: errs,
+    };
+  };
 
   function bindVideo() {
     const v = getVideo();
@@ -632,6 +652,6 @@
     startVideo();
   }
   if (SITE === 'youtube') window.addEventListener('yt-navigate-finish', onNavigate);
-  setInterval(() => { onNavigate(); if (pageKey()) { buildUI(); bindVideo(); } }, 1000);
+  setInterval(safe('loop', () => { onNavigate(); if (pageKey()) { buildUI(); bindVideo(); } }), 1000);
   onNavigate();
 })();

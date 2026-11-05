@@ -100,3 +100,5 @@
 .mdub-panel::-webkit-scrollbar-thumb{background:#3A3E46;border-radius:8px}
 .mdub-panel::-webkit-scrollbar-button{display:none}
 .mdub-bar.hide{display:none}
+.mdub-fab.show.idle{opacity:.45}
+.mdub-fab.show.idle:hover{opacity:1}

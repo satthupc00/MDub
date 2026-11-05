@@ -50,11 +50,14 @@ function toBase64(buf) {
 }
 
 // Khi app đã cập nhật extension trên ổ cứng → tự nạp lại.
-function maybeReload(status) {
+async function maybeReload(status) {
   const mine = chrome.runtime.getManifest().version;
-  if (status && status.extVersion && status.extVersion !== mine) {
-    setTimeout(() => chrome.runtime.reload(), 500);
-  }
+  if (!status || !status.extVersion || status.extVersion === mine) return;
+  // chống nạp lại liên tục (vd extension được nạp từ thư mục khác thư mục của app)
+  const { lastReload = 0 } = await chrome.storage.local.get('lastReload');
+  if (Date.now() - lastReload < 10 * 60 * 1000) return;
+  await chrome.storage.local.set({ lastReload: Date.now() });
+  setTimeout(() => chrome.runtime.reload(), 500);
 }
 
 async function handle(msg) {

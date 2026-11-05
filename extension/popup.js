@@ -39,6 +39,7 @@ function render() {
   } else if (builtin.includes(host)) {
     const name = host.includes('netflix') ? 'netflix.com' : 'youtube.com';
     here.append(el('div', { class: 'm', text: `${name} có sẵn trong MDub. Mở video và bấm nút VI.` }));
+    here.append(diagBox());
   } else if (site) {
     const sw = el('input', { type: 'checkbox', class: 'sw', 'aria-label': 'Bật MDub cho ' + host, title: 'Bật/tắt MDub cho trang này' });
     sw.checked = !!site.enabled;
@@ -48,6 +49,7 @@ function render() {
       if (r.ok) { sites = r.data.sites; render(); }
     });
     here.append(el('div', { class: 'row', style: 'justify-content:space-between' }, [el('span', {}, [document.createTextNode('MDub trên '), el('b', { text: host })]), sw]));
+    if (site.enabled) here.append(diagBox());
   } else {
     here.append(
       el('div', { class: 'card' }, [el('b', { text: host }), el('div', { class: 'm', text: 'Trang này chưa bật MDub. Sau khi bật, MDub tự tìm video và phụ đề có sẵn trên trang.' })]),
@@ -68,6 +70,70 @@ function render() {
   }
   renderSites();
 }
+
+// ---------- Kiểm tra MDub có chạy trên trang hiện tại không ----------
+const originsOf = (h) => [`https://${h}/*`, `http://${h}/*`];
+async function collectDiag() {
+  const out = { ext: chrome.runtime.getManifest().version, host, path: '', permission: null, page: null, hook: null, err: null };
+  try { out.permission = await chrome.permissions.contains({ origins: [`https://${host}/*`] }); } catch (e) { out.permission = 'err'; }
+  try {
+    const [iso] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: () => ({ loaded: !!window.__mdubContent, d: window.__mdubDiag ? window.__mdubDiag() : null, path: location.pathname }) });
+    out.page = iso && iso.result;
+    out.path = out.page && out.page.path;
+  } catch (e) { out.err = 'iso: ' + e.message; }
+  try {
+    const [main] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id }, world: 'MAIN',
+      func: () => new Promise((resolve) => {
+        const r = { yt: !!window.__mdubHook, nf: !!window.__mdubHookNf, web: !!window.__mdubHookWeb, nfDiag: null };
+        if (!r.nf) return resolve(r);
+        const id = 77700000 + Math.floor(Math.random() * 1000);
+        const on = (e) => { if (e.data && e.data.__mdub === 'res' && e.data.id === id) { removeEventListener('message', on); r.nfDiag = e.data.res; resolve(r); } };
+        addEventListener('message', on);
+        postMessage({ __mdub: 'req', id, cmd: 'diag' }, '*');
+        setTimeout(() => resolve(r), 1500);
+      }),
+    });
+    out.hook = main && main.result;
+  } catch (e) { out.err = (out.err ? out.err + ' | ' : '') + 'main: ' + e.message; }
+  return out;
+}
+
+function diagBox() {
+  const box = el('div', { class: 'card' }, [el('div', { class: 'm', text: 'Đang kiểm tra MDub trên trang này…' })]);
+  collectDiag().then((d) => {
+    lastDiag = d;
+    const running = d.page && d.page.loaded;
+    const rows = [];
+    rows.push(el('div', { class: 'row' }, [el('i', { class: 'dot ' + (running ? 'on' : 'err') }), el('span', { text: running ? 'MDub đang chạy trên trang này' : 'MDub chưa chạy trên trang này' })]));
+    if (running && d.page.d) {
+      const pd = d.page.d;
+      const msg = !pd.key ? 'Chưa mở video (mở một phim để xem).'
+        : !pd.video ? 'Chưa thấy khung video trên trang.'
+          : pd.noSubs || pd.error || pd.info || (pd.job ? `Trạng thái: ${pd.job}` : '');
+      if (msg) rows.push(el('div', { class: 'm', text: msg }));
+    } else if (!running) {
+      rows.push(el('div', { class: 'm', text: 'Có thể Chrome chưa cho MDub quyền đọc trang này, hoặc trang mở trước khi MDub cập nhật.' }));
+      rows.push(el('button', {
+        class: 'red', text: 'Cấp quyền & tải lại trang',
+        onclick: async () => {
+          await chrome.permissions.request({ origins: originsOf(host) }).catch(() => false);
+          chrome.tabs.reload(tab.id); window.close();
+        },
+      }));
+    }
+    rows.push(el('button', {
+      text: 'Sao chép thông tin lỗi',
+      onclick: async (e) => {
+        const text = 'MDub chẩn đoán:\n' + JSON.stringify(lastDiag, null, 1);
+        try { await navigator.clipboard.writeText(text); e.target.textContent = 'Đã sao chép ✓'; } catch { e.target.textContent = 'Không sao chép được'; }
+      },
+    }));
+    box.replaceChildren(...rows);
+  });
+  return box;
+}
+let lastDiag = null;
 
 (async () => {
   await loadTab();
